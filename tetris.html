@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Тетрис</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Pirata+One&display=swap');
+  body { margin:0; background:linear-gradient(135deg,#3d2817,#5c3a1e);
+         color:#f4e4bc; font-family:'IM Fell English SC',serif;
+         display:flex; justify-content:center; align-items:center; min-height:100vh; }
+  .wrap { display:flex; gap:20px; padding:25px; background:linear-gradient(135deg,#6b4423,#8b5a2b);
+          border-radius:8px; border:4px solid #3d2817; box-shadow:0 8px 30px rgba(0,0,0,0.6),
+          inset 0 0 20px rgba(0,0,0,0.4); position:relative; }
+  .wrap::before { content:'☠'; position:absolute; top:-15px; left:50%; transform:translateX(-50%);
+                  font-size:28px; color:#f4e4bc; text-shadow:0 2px 4px rgba(0,0,0,0.8); }
+  canvas { background:linear-gradient(135deg,#d4a574,#b8895a); border:4px solid #3d2817;
+           border-radius:4px; box-shadow:inset 0 0 20px rgba(62,40,23,0.5),
+           0 0 15px rgba(0,0,0,0.5); }
+  .side { min-width:150px; }
+  .box { background:linear-gradient(135deg,#4a2f1a,#6b4423); padding:10px; border-radius:6px;
+         margin-bottom:10px; border:2px solid #8b6914; box-shadow:inset 0 0 10px rgba(0,0,0,0.3); }
+  .lbl { color:#d4a574; font-size:12px; text-transform:uppercase; letter-spacing:2px;
+         font-family:'Pirata One',cursive; }
+  .val { font-size:24px; font-weight:bold; color:#ffd700; text-shadow:0 0 8px rgba(255,215,0,0.5);
+         font-family:'Pirata One',cursive; }
+  #next { display:block; margin-top:5px; background:linear-gradient(135deg,#d4a574,#b8895a);
+          border:2px solid #3d2817; border-radius:4px; }
+  .controls { font-size:14px; line-height:1.6; color:#f4e4bc; }
+  .controls b { color:#ffd700; }
+  #restartBtn { background:linear-gradient(135deg,#8b0000,#a52a2a) !important; color:#f4e4bc !important;
+                border:2px solid #8b6914 !important; padding:10px; border-radius:6px; cursor:pointer;
+                font-size:16px; width:100%; font-weight:bold; font-family:'Pirata One',cursive;
+                text-transform:uppercase; letter-spacing:1px; text-shadow:0 1px 2px rgba(0,0,0,0.8);
+                box-shadow:0 3px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2); }
+  #restartBtn:hover { background:linear-gradient(135deg,#a52a2a,#8b0000) !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="game" width="300" height="600"></canvas>
+  <div class="side">
+    <div class="box"><div class="lbl">Очки</div><div class="val" id="score">0</div></div>
+    <div class="box"><div class="lbl">Уровень</div><div class="val" id="level">1</div></div>
+    <div class="box"><div class="lbl">Линии</div><div class="val" id="lines">0</div></div>
+    <div class="box"><div class="lbl">⏳ Время</div><div class="val" id="timer">00:00</div></div>
+    <div class="box"><div class="lbl">Следующая</div><canvas id="next" width="120" height="120"></canvas></div>
+    <div class="box controls">
+      ⚔ <b>← →</b> движение<br>
+      🧭 <b>↑</b> поворот<br>
+      ⬇ <b>↓</b> ускорить<br>
+      🏴‍☠️ <b>Space</b> сброс<br>
+      🍺 <b>R</b> рестарт
+    </div>
+    <button id="restartBtn" style="background:#e53935;color:#fff;border:none;padding:10px;border-radius:6px;cursor:pointer;font-size:14px;width:100%;font-weight:bold">Рестарт</button>
+  </div>
+</div>
+<script>
+const COLS=10, ROWS=20, SZ=30;
+const g=document.getElementById('game'), c=g.getContext('2d');
+const nv=document.getElementById('next'), nc=nv.getContext('2d');
+const $=id=>document.getElementById(id);
+
+const SHAPES=[
+  [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+  [[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]],
+  [[0,1,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]],
+  [[0,1,1,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]],
+  [[1,1,0,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+  [[1,0,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]],
+  [[0,0,1,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]]
+];
+const COLORS=['#00f0f0','#f0f000','#a000f0','#00f000','#f00000','#0000f0','#f0a000'];
+
+let board, cur, nxt, score, level, lines, dropT, last, over, startTime, elapsed=0;
+
+function newBoard(){ return Array.from({length:ROWS},()=>Array(COLS).fill(0)); }
+function rnd(){
+  const i=Math.floor(Math.random()*SHAPES.length);
+  return {shape:SHAPES[i].map(r=>r.slice()), color:COLORS[i]};
+}
+
+function spawn(){
+  cur=nxt||rnd(); nxt=rnd();
+  cur.x=Math.floor((COLS-cur.shape[0].length)/2);
+  cur.y=0;
+  if(collide(0,0)) over=true;
+}
+
+function collide(dx,dy,shape){
+  shape=shape||cur.shape;
+  for(let y=0;y<shape.length;y++){
+    for(let x=0;x<shape[y].length;x++){
+      if(!shape[y][x]) continue;
+      const nx=cur.x+x+dx, ny=cur.y+y+dy;
+      if(nx<0||nx>=COLS||ny>=ROWS) return true;
+      if(ny>=0 && board[ny][nx]) return true;
+    }
+  }
+  return false;
+}
+
+function lock(){
+  for(let y=0;y<cur.shape.length;y++){
+    for(let x=0;x<cur.shape[y].length;x++){
+      if(cur.shape[y][x]){
+        const ny=cur.y+y, nx=cur.x+x;
+        if(ny>=0) board[ny][nx]=cur.color;
+      }
+    }
+  }
+  let cl=0;
+  for(let y=ROWS-1;y>=0;y--){
+    if(board[y].every(v=>v)){
+      board.splice(y,1);
+      board.unshift(Array(COLS).fill(0));
+      cl++; y++;
+    }
+  }
+  if(cl>0){
+    score+=[0,100,300,500,800][cl]*level;
+    lines+=cl;
+    level=Math.floor(lines/10)+1;
+    $('score').textContent=score;
+    $('level').textContent=level;
+    $('lines').textContent=lines;
+  }
+  if(!over) spawn();
+}
+
+function drawBlock(ctx,x,y,color,size){
+  size=size||SZ;
+  ctx.fillStyle=color;
+  ctx.fillRect(x*size,y*size,size,size);
+  ctx.strokeStyle='#3d2817'; ctx.lineWidth=2;
+  ctx.strokeRect(x*size,y*size,size,size);
+}
+function draw(){
+  c.fillStyle='#d4a574'; c.fillRect(0,0,g.width,g.height);
+  for(let y=0;y<ROWS;y++)
+    for(let x=0;x<COLS;x++)
+      if(board[y][x]) drawBlock(c,x,y,board[y][x]);
+  if(cur && !over)
+    for(let y=0;y<cur.shape.length;y++)
+      for(let x=0;x<cur.shape[y].length;x++)
+        if(cur.shape[y][x]) drawBlock(c,cur.x+x,cur.y+y,cur.color);
+  if(over){
+    c.fillStyle='rgba(61,40,23,0.85)';
+    c.fillRect(0,0,g.width,g.height);
+    c.fillStyle='#ffd700';
+    c.font='bold 36px Georgia';
+    c.textAlign='center';
+    c.fillText('☠ GAME OVER', g.width/2, g.height/2);
+    c.fillStyle='#f4e4bc';
+    c.font='18px Georgia';
+    c.fillText('Нажми R для рестарта', g.width/2, g.height/2 + 40);
+  }
+  nc.fillStyle='#d4a574'; nc.fillRect(0,0,nv.width,nv.height);
+  if(nxt){
+    const s=24;
+    const ox=(nv.width-nxt.shape[0].length*s)/2;
+    const oy=(nv.height-nxt.shape.length*s)/2;
+    for(let y=0;y<nxt.shape.length;y++)
+      for(let x=0;x<nxt.shape[y].length;x++)
+        if(nxt.shape[y][x]) drawBlock(nc,ox/s+x,oy/s+y,nxt.color,s);
+  }
+}
+
+function tick(t){
+  if(!over){
+    const dt = t - last;
+    last = t;
+    if(dt < 1000){
+      dropT += dt;
+      elapsed += dt;
+      $('timer').textContent = formatTime(elapsed/1000);
+      if(dropT > 800){
+        if(!collide(0,1)) cur.y++;
+        else lock();
+        dropT=0;
+      }
+    } else {
+      dropT = 0;
+    }
+  }
+  draw();
+  requestAnimationFrame(tick);
+}
+
+function formatTime(sec){
+  const m = Math.floor(sec/60);
+  const s = Math.floor(sec%60);
+  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+function reset(){
+  board=newBoard(); score=0; level=1; lines=0; dropT=0; over=false; elapsed=0;
+  nxt=rnd(); spawn();
+  $('score').textContent=0; $('level').textContent=1; $('lines').textContent=0;
+  $('timer').textContent='00:00';
+  last=performance.now();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='r'||e.key==='R'){ reset(); draw(); return; }
+  if(over) return;
+  if(e.key==='ArrowLeft' && !collide(-1,0)) cur.x--;
+  else if(e.key==='ArrowRight' && !collide(1,0)) cur.x++;
+  else if(e.key==='ArrowDown' && !collide(0,1)) cur.y++;
+  else if(e.key==='ArrowUp'){
+    const n=cur.shape.length;
+    const r=Array.from({length:n},()=>Array(n).fill(0));
+    for(let y=0;y<n;y++) for(let x=0;x<n;x++) r[x][n-1-y]=cur.shape[y][x];
+    if(!collide(0,0,r)) cur.shape=r;
+  }
+  else if(e.key===' '){ while(!collide(0,1)) cur.y++; lock(); }
+});
+
+reset();
+last=performance.now();
+requestAnimationFrame(tick);
+
+document.getElementById('restartBtn').addEventListener('click',()=>{ reset(); draw(); });
+</script>
+</body>
+</html>

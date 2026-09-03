@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Pixel Plane</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #0a0a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+  }
+  #gameContainer {
+    text-align: center;
+    position: relative;
+  }
+  canvas {
+    border: 2px solid #4a3a8a;
+    box-shadow: 0 0 20px #6a4cff;
+    background: #000010;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  #info {
+    color: #8a7aff;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+
+  /* Кнопка рестарта */
+    #restartBtn {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 14px 36px;
+    background: #8a4cff;
+    color: #fff;
+    border: 3px solid #a070ff;
+    box-shadow: 0 0 20px #8a4cff, inset 0 0 10px #5a2acc;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    display: none;
+    image-rendering: pixelated;
+    transition: transform 0.1s, box-shadow 0.1s;
+    z-index: 10;
+    white-space: nowrap;
+  }
+  #restartBtn:hover {
+    background: #a070ff;
+    box-shadow: 0 0 30px #a070ff, inset 0 0 15px #6a4cff;
+    transform: translateX(-50%) scale(1.05);
+  }
+  #restartBtn:active {
+    transform: translateX(-50%) scale(0.95);
+  }
+  #restartBtn.show {
+    display: block;
+    animation: pulse 1.5s infinite;
+  }
+  #restartBtn.pos-menu { top: 65%; }
+  #restartBtn.pos-gameover { top: 58%; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 20px #8a4cff, inset 0 0 10px #5a2acc; }
+    50% { box-shadow: 0 0 35px #a070ff, inset 0 0 15px #6a4cff; }
+  }
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <canvas id="gameCanvas" width="480" height="640"></canvas>
+  <button id="restartBtn">RESTART</button>
+  <div id="info">← → или A/D для управления</div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+
+const restartBtn = document.getElementById('restartBtn');
+
+// Состояние игры
+let game = {
+  state: 'menu',
+  score: 0,
+  highScore: parseInt(localStorage.getItem('pixelPlaneHigh') || '0'),
+  frame: 0
+};
+
+// Игрок
+let player = {
+  x: W / 2,
+  y: H - 80,
+  size: 18,
+  vx: 0,
+  rotation: 0,
+  tilt: 0
+};
+
+let obstacles = [];
+let particles = [];
+let stars = [];
+
+for (let i = 0; i < 80; i++) {
+  stars.push({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    speed: 0.5 + Math.random() * 2,
+    size: Math.random() < 0.3 ? 2 : 1,
+    brightness: Math.random()
+  });
+}
+
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if ([' ', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+  }
+});
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// Клик по кнопке рестарта
+restartBtn.addEventListener('click', () => {
+  startGame();
+});
+
+function startGame() {
+  game.state = 'playing';
+  game.score = 0;
+  game.frame = 0;
+  obstacles = [];
+  particles = [];
+  player.x = W / 2;
+  player.vx = 0;
+  player.tilt = 0;
+  player.rotation = 0;
+    restartBtn.classList.remove('show', 'pos-menu', 'pos-gameover');
+  }
+
+function spawnObstacle() {
+  const types = ['block', 'spike', 'wide'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  let w, h;
+  if (type === 'block') { w = 30 + Math.random() * 30; h = 30 + Math.random() * 30; }
+  else if (type === 'spike') { w = 24; h = 40; }
+  else { w = 60; h = 24; }
+
+  obstacles.push({
+    x: Math.random() * (W - w - 20) + 10,
+    y: -h,
+    w: w,
+    h: h,
+    type: type,
+    color: Math.random() < 0.7 ? '#ff3366' : (Math.random() < 0.5 ? '#ffaa22' : '#22ddff'),
+    rotation: 0,
+    rotSpeed: (Math.random() - 0.5) * 0.05
+  });
+}
+
+function drawPixelRect(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
+}
+
+function drawDiamond(cx, cy, size, rotation, color) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+
+  const s = size;
+  for (let row = -s; row <= s; row++) {
+    const w = s - Math.abs(row);
+    if (w < 0) continue;
+    const isEdge = (row === -s || row === s);
+    const isCenter = (row === 0);
+
+    let shade = color;
+    if (isEdge) shade = '#2a0a4a';
+    else if (isCenter) shade = '#a070ff';
+    else {
+      const ratio = Math.abs(row) / s;
+      if (ratio > 0.7) shade = '#5a2acc';
+      else if (ratio > 0.4) shade = '#7a40ee';
+    }
+
+    drawPixelRect(-w, row, w * 2, 1, shade);
+  }
+
+  drawPixelRect(-s * 0.4, -s * 0.5, 2, 2, '#c8a0ff');
+
+  ctx.restore();
+}
+
+function drawObstacle(obs) {
+  ctx.save();
+  ctx.translate(obs.x + obs.w / 2, obs.y + obs.h / 2);
+  ctx.rotate(obs.rotation);
+
+  if (obs.type === 'block') {
+    drawPixelRect(-obs.w / 2, -obs.h / 2, obs.w, obs.h, obs.color);
+    drawPixelRect(-obs.w / 2, -obs.h / 2, obs.w, 2, '#ffffff');
+    drawPixelRect(-obs.w / 2, obs.h / 2 - 2, obs.w, 2, '#880044');
+    drawPixelRect(-obs.w / 2, -obs.h / 2, 2, obs.h, '#ffffff');
+    drawPixelRect(obs.w / 2 - 2, -obs.h / 2, 2, obs.h, '#880044');
+    drawPixelRect(-2, -2, 2, 2, '#000000');
+  } else if (obs.type === 'spike') {
+    for (let row = 0; row < obs.h; row++) {
+      const w = Math.floor((obs.w / 2) * (1 - row / obs.h));
+      drawPixelRect(-w, row - obs.h / 2, w * 2, 1, obs.color);
+    }
+    drawPixelRect(-2, -obs.h / 2 + 2, 4, 4, '#ffffff');
+  } else {
+    drawPixelRect(-obs.w / 2, -obs.h / 2, obs.w, obs.h, obs.color);
+    for (let i = -obs.w / 2; i < obs.w / 2; i += 6) {
+      drawPixelRect(i, -obs.h / 2, 3, 3, '#ffffff');
+    }
+  }
+
+  ctx.restore();
+}
+
+function spawnParticles(x, y, color) {
+  for (let i = 0; i < 25; i++) {
+    particles.push({
+      x: x, y: y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8,
+      life: 30 + Math.random() * 20,
+      color: color,
+      size: 2 + Math.random() * 3
+    });
+  }
+}
+
+function gameOver() {
+  spawnParticles(player.x, player.y, '#a070ff');
+  spawnParticles(player.x, player.y, '#ff3366');
+  if (game.score > game.highScore) {
+    game.highScore = game.score;
+    localStorage.setItem('pixelPlaneHigh', game.highScore);
+  }
+    game.state = 'gameover';
+  restartBtn.textContent = 'RESTART';
+  restartBtn.classList.remove('pos-menu');
+  restartBtn.classList.add('pos-gameover', 'show');
+}
+
+function update() {
+  game.frame++;
+
+  // Управление (только во время игры)
+  if (game.state === 'playing') {
+    const speed = 7;
+    if (keys['arrowleft'] || keys['a'])     player.vx -= 1.2;
+    if (keys['arrowright'] || keys['d']) player.vx += 1.2;
+
+    player.vx *= 0.7;
+    if (player.vx > speed) player.vx = speed;
+    if (player.vx < -speed) player.vx = -speed;
+
+    player.x += player.vx;
+    if (player.x < player.size) { player.x = player.size; player.vx = 0; }
+    if (player.x > W - player.size) { player.x = W - player.size; player.vx = 0; }
+
+    player.tilt = player.vx * 0.08;
+    player.rotation += 0.12;
+
+    const spawnRate = Math.max(8, 25 - Math.floor(game.score / 4));
+    if (game.frame % spawnRate === 0) spawnObstacle();
+
+    const speedObs = 3.5 + game.score * 0.05;
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const obs = obstacles[i];
+      obs.y += speedObs;
+      obs.rotation += obs.rotSpeed;
+
+      const dx = Math.abs(player.x - (obs.x + obs.w / 2));
+      const dy = Math.abs(player.y - (obs.y + obs.h / 2));
+      if (dx < (obs.w / 2 + player.size * 0.6) && dy < (obs.h / 2 + player.size * 0.6)) {
+        gameOver();
+      }
+
+      if (obs.y > H + 50) {
+        obstacles.splice(i, 1);
+        game.score++;
+      }
+    }
+
+    if (game.frame % 3 === 0) {
+      particles.push({
+        x: player.x + (Math.random() - 0.5) * 4,
+        y: player.y + player.size,
+        vx: (Math.random() - 0.5) * 1,
+        vy: 2 + Math.random() * 2,
+        life: 15,
+        color: Math.random() < 0.5 ? '#a070ff' : '#6a4cff',
+        size: 2
+      });
+    }
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.1;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  for (const star of stars) {
+    star.y += star.speed;
+    star.brightness = 0.5 + Math.sin((star.y + game.frame) * 0.05) * 0.5;
+    if (star.y > H) {
+      star.y = 0;
+      star.x = Math.random() * W;
+    }
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#000010';
+  ctx.fillRect(0, 0, W, H);
+
+  for (const star of stars) {
+    const b = Math.floor(star.brightness * 200);
+    ctx.fillStyle = `rgb(${b},${b},${Math.min(255, b + 30)})`;
+    ctx.fillRect(Math.floor(star.x), Math.floor(star.y), star.size, star.size);
+  }
+
+  for (const obs of obstacles) drawObstacle(obs);
+
+  if (game.state !== 'gameover') {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(player.tilt);
+    drawDiamond(0, 0, player.size, player.rotation, '#8a4cff');
+    ctx.restore();
+  }
+
+  for (const p of particles) {
+    const alpha = p.life / 50;
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(Math.floor(p.x - p.size / 2), Math.floor(p.y - p.size / 2), p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+
+  // UI
+  if (game.state === 'playing') {
+    ctx.fillStyle = '#6a4cff';
+    ctx.font = 'bold 32px "Courier New", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(String(game.score).padStart(4, '0'), 20, 45);
+
+    ctx.fillStyle = '#4a3a8a';
+    ctx.font = '14px "Courier New", monospace';
+    ctx.fillText('HI ' + String(game.highScore).padStart(4, '0'), 20, 65);
+    } else if (game.state === 'menu') {
+    ctx.fillStyle = '#8a4cff';
+    ctx.font = 'bold 48px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('PIXEL PLANE', W / 2, 140);
+
+    ctx.fillStyle = '#a070ff';
+    ctx.font = '16px "Courier New", monospace';
+    ctx.fillText('Уворачивайся от препятствий!', W / 2, 190);
+
+    ctx.fillStyle = '#7a6acc';
+    ctx.font = '14px "Courier New", monospace';
+    ctx.fillText('Используй ← → чтобы летать', W / 2, 220);
+
+    // Декоративный ромб в центре
+    drawDiamond(W / 2, H / 2 + 30, 24, game.frame * 0.02, '#8a4cff');
+
+    restartBtn.textContent = 'START';
+    restartBtn.classList.remove('pos-gameover');
+    restartBtn.classList.add('pos-menu', 'show');
+    } else if (game.state === 'gameover') {
+    ctx.fillStyle = '#ff3366';
+    ctx.font = 'bold 48px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', W / 2, 240);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px "Courier New", monospace';
+    ctx.fillText('Счёт: ' + game.score, W / 2, 290);
+    ctx.fillText('Рекорд: ' + game.highScore, W / 2, 325);
+
+    ctx.fillStyle = '#7a6acc';
+    ctx.font = '14px "Courier New", monospace';
+    ctx.fillText('Ты почти долетел до звёзд!', W / 2, 360);
+
+    restartBtn.textContent = 'RESTART';
+    restartBtn.classList.remove('pos-menu');
+    restartBtn.classList.add('pos-gameover', 'show');
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Шашки</title>
+<style>
+  body { font-family: sans-serif; text-align: center; background: radial-gradient(ellipse at center, #0b0b2e 0%, #020214 100%); color: #b8c5ff; margin: 0; padding: 20px; min-height: 100vh; }
+  h1 { margin-bottom: 10px; font-weight: 300; letter-spacing: 4px; text-transform: uppercase; text-shadow: 0 0 20px #4a90d9, 0 0 40px #2a50a9; }
+  #board { display: grid; grid-template-columns: repeat(8, 60px); grid-template-rows: repeat(8, 60px); gap: 0; margin: 0 auto; border: 3px solid #2a4a8a; box-shadow: 0 0 30px #1a3a9a, 0 0 60px #0a1a5a, inset 0 0 20px rgba(74,144,217,0.2); background: #0a1a4a; border-radius: 4px; width: max-content; }
+  .cell { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .cell.dark { background: linear-gradient(135deg, #0d1a3a 0%, #152550 50%, #0d1a3a 100%); box-shadow: inset 0 0 15px rgba(74,144,217,0.15); }
+  .cell.light { background: linear-gradient(135deg, #1a2a5a 0%, #203070 50%, #1a2a5a 100%); }
+  .piece { width: 44px; height: 44px; border-radius: 50%; border: 2px solid #8ab4ff; box-shadow: 0 0 10px #4a90d9, 0 0 20px #2a60b9, inset 0 0 10px rgba(74,144,217,0.3); cursor: pointer; position: relative; transition: box-shadow 0.2s; }
+  .piece:hover { box-shadow: 0 0 15px #6ab4ff, 0 0 30px #3a70d9, inset 0 0 10px rgba(74,144,217,0.3); }
+  .white { background: radial-gradient(circle at 35% 35%, #e8f4ff, #a0c8ff 40%, #5080d0 70%, #2040a0); }
+  .black { background: radial-gradient(circle at 35% 35%, #3a4a6a, #1a2040 40%, #080c20 70%, #020410); border-color: #6080c0; box-shadow: 0 0 10px #3050a0, 0 0 20px #1a3080, inset 0 0 10px rgba(74,144,217,0.2); }
+  .black:hover { box-shadow: 0 0 15px #4060b0, 0 0 30px #2040a0, inset 0 0 10px rgba(74,144,217,0.2); }
+  .king { border-color: #ffd700; box-shadow: 0 0 15px #ffd700, 0 0 30px #ff9900, inset 0 0 10px rgba(255,215,0,0.4); background: radial-gradient(circle at 35% 35%, #fff8e0, #ffd700 30%, #ff9900 60%, #cc5500); }
+  .king.black { border-color: #ffd700; box-shadow: 0 0 15px #ffd700, 0 0 30px #ff9900, inset 0 0 10px rgba(255,215,0,0.4); }
+  button { padding: 10px 20px; font-size: 16px; margin-top: 15px; cursor: pointer; background: transparent; color: #8ab4ff; border: 1px solid #4a70c0; border-radius: 4px; transition: all 0.3s; letter-spacing: 2px; text-transform: uppercase; }
+  #musicBtn { margin-left: 10px; background: rgba(74,144,217,0.15); }
+  button:hover { background: rgba(74,144,217,0.2); border-color: #8ab4ff; box-shadow: 0 0 15px rgba(74,144,217,0.4); }
+  #info { margin-top: 10px; font-size: 18px; min-height: 26px; letter-spacing: 1px; text-shadow: 0 0 10px #4a90d9; }
+</style>
+</head>
+<body>
+<h1>Шашки</h1>
+<div id="info">Ходят белые</div>
+<div id="board"></div>
+<button onclick="resetGame()">Restart</button>
+<button id="musicBtn" onclick="toggleMusic()">Music: Off</button>
+
+<script>
+const boardEl = document.getElementById('board');
+let board = [];
+let selected = null;
+let turn = 'white';
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioCtx();
+
+function playSound(type) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  if (type === 'move') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(1040, now + 0.15);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    osc.start(now);
+    osc.stop(now + 0.3);
+  } else if (type === 'capture') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.linearRampToValueAtTime(1320, now + 0.08);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    osc.start(now);
+    osc.stop(now + 0.25);
+  }
+}
+
+function startBackgroundMusic() {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (window.bgOsc) return;
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const gain1 = audioCtx.createGain();
+  const gain2 = audioCtx.createGain();
+  osc1.connect(gain1); osc2.connect(gain2);
+  gain1.connect(audioCtx.destination); gain2.connect(audioCtx.destination);
+  osc1.type = 'sine'; osc2.type = 'triangle';
+  gain1.gain.value = 0.04; gain2.gain.value = 0.025;
+  osc1.start(); osc2.start();
+
+  // Melodic sequence in C major pentatonic / gentle arpeggio
+  const melodyNotes = [
+    261.63, 293.66, 329.63, 392.00,
+    329.63, 261.63, 220.00, 261.63,
+    293.66, 329.63, 392.00, 440.00,
+    392.00, 329.63, 293.66, 261.63
+  ];
+  let idx = 0;
+  const intervalMs = 1000;
+
+  const playNote = () => {
+    const freq = melodyNotes[idx % melodyNotes.length];
+    osc1.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.4);
+    osc2.frequency.setTargetAtTime(freq * 1.002, audioCtx.currentTime, 0.4);
+    idx = (idx + 1) % melodyNotes.length;
+  };
+  playNote();
+  const timer = setInterval(playNote, intervalMs);
+
+  window.bgOsc = { osc1, osc2, gain1, gain2, timer };
+}
+
+function createBoard() {
+  board = [];
+  for (let r = 0; r < 8; r++) {
+    board[r] = [];
+    for (let c = 0; c < 8; c++) {
+      board[r][c] = null;
+    }
+  }
+  // White on top rows (0,1,2)
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 8; c++) {
+      if ((r + c) % 2 === 1) board[r][c] = { color: 'white', king: false };
+    }
+  }
+  // Black on bottom rows (5,6,7)
+  for (let r = 5; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if ((r + c) % 2 === 1) board[r][c] = { color: 'black', king: false };
+    }
+  }
+}
+
+function render() {
+  boardEl.innerHTML = '';
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+      const p = board[r][c];
+      if (p) {
+        const el = document.createElement('div');
+        el.className = 'piece ' + p.color + (p.king ? ' king' : '');
+        if (selected && selected.r === r && selected.c === c) el.style.outline = '3px solid yellow';
+        el.onclick = () => clickCell(r, c);
+        cell.appendChild(el);
+      } else {
+        cell.onclick = () => clickCell(r, c);
+      }
+      boardEl.appendChild(cell);
+    }
+  }
+}
+
+function clickCell(r, c) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const p = board[r][c];
+  if (selected) {
+    if (tryMove(selected.r, selected.c, r, c)) {
+      selected = null;
+      turn = turn === 'white' ? 'black' : 'white';
+      document.getElementById('info').textContent = 'Ходят ' + (turn === 'white' ? 'белые' : 'черные');
+      render();
+      return;
+    }
+    // Clicked on another own piece — switch selection
+    if (p && p.color === turn) {
+      selected = { r, c };
+      render();
+      return;
+    }
+    // Invalid move or empty cell — deselect
+    selected = null;
+    render();
+    return;
+  }
+  if (p && p.color === turn) {
+    selected = { r, c };
+    render();
+  }
+}
+
+function tryMove(r1, c1, r2, c2) {
+  const p = board[r1][c1];
+  if (!p || p.color !== turn) return false;
+  const dr = r2 - r1;
+  const dc = c2 - c1;
+  if (Math.abs(dr) !== Math.abs(dc)) return false;
+
+  // White at top moves down (toward row 7), black at bottom moves up (toward row 0)
+  const dir = p.color === 'white' ? 1 : -1;
+
+  if (Math.abs(dr) === 1) {
+    if (r2 < 0 || r2 > 7 || c2 < 0 || c2 > 7) return false;
+    if (board[r2][c2] !== null) return false;
+    if (!p.king && dr !== dir) return false;
+    // Move
+    board[r2][c2] = p; board[r1][c1] = null;
+    checkKing(r2, c2);
+    playSound('move');
+    return true;
+  }
+
+  if (Math.abs(dr) === 2) {
+    // Capture
+    const mr = (r1 + r2) / 2;
+    const mc = (c1 + c2) / 2;
+    const mid = board[mr][mc];
+    if (!mid || mid.color === p.color) return false;
+    if (!(p.king || dr === dir * 2)) return false;
+    if (board[r2][c2] !== null) return false;
+    board[r2][c2] = p; board[r1][c1] = null; board[mr][mc] = null;
+    checkKing(r2, c2);
+    playSound('capture');
+    return true;
+  }
+  return false;
+}
+
+function checkKing(r, c) {
+  const p = board[r][c];
+  if (!p) return;
+  if (p.color === 'white' && r === 7) p.king = true;
+  if (p.color === 'black' && r === 0) p.king = true;
+}
+
+let bgMusicOn = false;
+function toggleMusic() {
+  bgMusicOn = !bgMusicOn;
+  document.getElementById('musicBtn').textContent = bgMusicOn ? 'Music: On' : 'Music: Off';
+  if (bgMusicOn) startBackgroundMusic();
+  else if (window.bgOsc) {
+    clearInterval(window.bgOsc.timer);
+    try { window.bgOsc.osc1.stop(); window.bgOsc.osc2.stop(); } catch(e){}
+    window.bgOsc = null;
+  }
+}
+
+function resetGame() {
+  createBoard();
+  selected = null;
+  turn = 'white';
+  document.getElementById('info').textContent = 'Ходят белые';
+  render();
+}
+
+createBoard();
+render();
+</script>
+</body>
+</html>
