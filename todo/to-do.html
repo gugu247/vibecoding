@@ -76,6 +76,7 @@
         .task-item {
             background-color: #f8f9fa;
             border: 1px solid #e9ecef;
+            border-left: 4px solid #6c757d;
             border-radius: 4px;
             padding: 12px;
             margin-bottom: 10px;
@@ -93,10 +94,24 @@
             opacity: 0.5;
             transform: scale(1.02);
         }
+        .task-item.priority-low {
+            background-color: #e8f5e9;
+            border-left-color: #4CAF50;
+        }
+        .task-item.priority-medium {
+            background-color: #fff8e1;
+            border-left-color: #ff9800;
+        }
+        .task-item.priority-high {
+            background-color: #ffebee;
+            border-left-color: #f44336;
+            box-shadow: 0 0 0 1px rgba(244, 67, 54, 0.2);
+        }
         .task-item.completed {
             text-decoration: line-through;
             color: #888;
             background-color: #f0f0f0;
+            border-left-color: #cccccc;
         }
         .task-actions {
             display: flex;
@@ -108,6 +123,18 @@
         }
         .delete-btn:hover {
             background-color: #d32f2f;
+        }
+        .priority-btn {
+            background-color: transparent;
+            color: #6c757d;
+            font-size: 18px;
+            padding: 4px 8px;
+        }
+        .priority-btn:hover {
+            color: #ff9800;
+        }
+        .priority-btn.active {
+            color: #f44336;
         }
         .column.empty {
             min-height: 100px;
@@ -124,6 +151,221 @@
             .kanban-board {
                 flex-direction: column;
             }
+        }
+        .trash-section {
+            max-width: 1200px;
+            margin: 40px auto 0 auto;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .trash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .trash-header h2 {
+            margin: 0;
+            color: #666;
+            font-size: 1.2em;
+        }
+        .empty-trash-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .empty-trash-btn:hover {
+            background-color: #c82333;
+        }
+        .trash-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            min-height: 60px;
+        }
+        .trash-item {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px 12px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 250px;
+        }
+        .trash-item-text {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .trash-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .restore-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .restore-btn:hover {
+            background-color: #218838;
+        }
+        .permanent-delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .permanent-delete-btn:hover {
+            background-color: #c82333;
+        }
+        .trash-empty {
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+            width: 100%;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .modal h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .modal-field {
+            margin-bottom: 15px;
+        }
+        .modal-field label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .modal-field input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .modal-field input[type="text"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        .priority-radio {
+            display: flex;
+            gap: 10px;
+        }
+        .priority-radio label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-weight: normal;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+            justify-content: center;
+        }
+        .priority-radio input[type="radio"] {
+            margin: 0;
+        }
+        .modal-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-checkbox input[type="checkbox"] {
+            margin: 0;
+        }
+        .modal-checkbox label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .modal-btn-save {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .modal-btn-save:hover {
+            background-color: #45a049;
+        }
+        .modal-btn-cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+        .modal-btn-cancel:hover {
+            background-color: #5a6268;
+        }
+        .task-text {
+            cursor: pointer;
+            user-select: none;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            color: #212529;
+            font-size: 14px;
+            padding: 4px 8px;
+        }
+        .edit-btn:hover {
+            background-color: #e0a800;
         }
     </style>
 </head>
@@ -148,12 +390,50 @@
         </div>
     </div>
 
+    <div class="trash-section">
+        <div class="trash-header">
+            <h2>🗑️ Корзина</h2>
+            <button id="emptyTrashBtn" class="empty-trash-btn">Очистить корзину</button>
+        </div>
+        <div id="trash-list" class="trash-list"></div>
+    </div>
+
+    <!-- Модальное окно редактирования -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Редактировать задачу</h2>
+            <div class="modal-field">
+                <label for="editText">Текст задачи</label>
+                <input type="text" id="editText" placeholder="Введите текст задачи...">
+            </div>
+            <div class="modal-field">
+                <label>Приоритет</label>
+                <div class="priority-radio">
+                    <label><input type="radio" name="editPriority" value="low"> 🟢 Низкий</label>
+                    <label><input type="radio" name="editPriority" value="medium"> 🟡 Средний</label>
+                    <label><input type="radio" name="editPriority" value="high"> 🔴 Высокий</label>
+                </div>
+            </div>
+            <div class="modal-field">
+                <div class="modal-checkbox">
+                    <input type="checkbox" id="editCompleted">
+                    <label for="editCompleted">Задача выполнена</label>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="cancelEditBtn">Отмена</button>
+                <button class="modal-btn modal-btn-save" id="saveEditBtn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Структура данных: три колонки
+        // Структура данных: три колонки + корзина
         const board = {
             todo: [],
             inProgress: [],
-            done: []
+            done: [],
+            trash: []
         };
 
         const taskInput = document.getElementById('taskInput');
@@ -161,12 +441,114 @@
         const todoList = document.getElementById('todo-list');
         const inProgressList = document.getElementById('in-progress-list');
         const doneList = document.getElementById('done-list');
+        const trashList = document.getElementById('trash-list');
+        const emptyTrashBtn = document.getElementById('emptyTrashBtn');
+
+        // Modal elements
+        const editModal = document.getElementById('editModal');
+        const editText = document.getElementById('editText');
+        const editCompleted = document.getElementById('editCompleted');
+        const saveEditBtn = document.getElementById('saveEditBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        let editingColumn = null;
+        let editingIndex = null;
+
+        // ==================== МОДАЛЬНОЕ ОКНО ====================
+        function openEditModal(columnId, index) {
+            const task = board[columnId][index];
+            if (!task) return;
+
+            editingColumn = columnId;
+            editingIndex = index;
+
+            // Заполняем поля модалки
+            editText.value = task.text;
+            editCompleted.checked = task.completed;
+
+            // Устанавливаем приоритет
+            const priority = task.priority || 'low';
+            document.querySelectorAll('input[name="editPriority"]').forEach(radio => {
+                radio.checked = radio.value === priority;
+            });
+
+            // Показываем модалку
+            editModal.classList.add('active');
+            editText.focus();
+        }
+
+        function closeEditModal() {
+            editModal.classList.remove('active');
+            editingColumn = null;
+            editingIndex = null;
+        }
+
+        function saveEdit() {
+            if (!editingColumn || editingIndex === null) return;
+
+            const text = editText.value.trim();
+            if (!text) return;
+
+            const task = board[editingColumn][editingIndex];
+            task.text = text;
+
+            // Приоритет из радио-кнопок
+            const checkedPriority = document.querySelector('input[name="editPriority"]:checked');
+            if (checkedPriority) {
+                task.priority = checkedPriority.value;
+            }
+
+            const wasCompleted = task.completed;
+            const nowCompleted = editCompleted.checked;
+            task.completed = nowCompleted;
+
+            if (!wasCompleted && nowCompleted) {
+                // Поставили галочку — перемещаем в "Готово"
+                task.previousColumn = editingColumn;
+                board[editingColumn].splice(editingIndex, 1);
+                board.done.push(task);
+            } else if (wasCompleted && !nowCompleted) {
+                // Сняли галочку — возвращаем в предыдущую колонку
+                const targetColumn = task.previousColumn || 'todo';
+                delete task.previousColumn;
+                board.done.splice(editingIndex, 1);
+                board[targetColumn].push(task);
+            }
+
+            saveBoard();
+            renderBoard();
+            closeEditModal();
+        }
+
+        // Закрытие по клику на оверлей
+        editModal.addEventListener('click', (e) => {
+            if (e.target === editModal) {
+                closeEditModal();
+            }
+        });
+
+        // Клавиша Escape закрывает модалку
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && editModal.classList.contains('active')) {
+                closeEditModal();
+            }
+            if (e.key === 'Enter' && editModal.classList.contains('active')) {
+                saveEdit();
+            }
+        });
+
+        saveEditBtn.addEventListener('click', saveEdit);
+        cancelEditBtn.addEventListener('click', closeEditModal);
 
         // Загрузка данных из localStorage
         function loadBoard() {
             const saved = localStorage.getItem('kanbanBoard');
             if (saved) {
-                Object.assign(board, JSON.parse(saved));
+                const parsed = JSON.parse(saved);
+                Object.assign(board, parsed);
+            }
+            // Ensure trash array exists (for backward compatibility)
+            if (!board.trash) {
+                board.trash = [];
             }
         }
 
@@ -180,6 +562,7 @@
             renderColumn('todo', todoList);
             renderColumn('inProgress', inProgressList);
             renderColumn('done', doneList);
+            renderTrash();
         }
 
         // Рендеринг одной колонки
@@ -197,14 +580,20 @@
 
             tasks.forEach((task, index) => {
                 const taskEl = document.createElement('div');
-                taskEl.className = `task-item${task.completed ? ' completed' : ''}`;
+                const priority = task.priority || 'low';
+                let classes = `task-item priority-${priority}`;
+                if (task.completed) classes += ' completed';
+                taskEl.className = classes;
                 taskEl.draggable = true;
                 taskEl.dataset.column = columnId;
                 taskEl.dataset.index = index;
 
+                const isImportant = priority === 'high';
                 taskEl.innerHTML = `
-                    <span>${task.text}</span>
+                    <span class="task-text" data-column="${columnId}" data-index="${index}" title="Кликните для редактирования">${task.text}</span>
                     <div class="task-actions">
+                        <button class="edit-btn" data-column="${columnId}" data-index="${index}" title="Редактировать">✏️</button>
+                        <button class="priority-btn ${isImportant ? 'active' : ''}" data-column="${columnId}" data-index="${index}" title="Важная задача">★</button>
                         <button class="delete-btn" data-column="${columnId}" data-index="${index}">✕</button>
                     </div>
                 `;
@@ -217,37 +606,133 @@
             });
         }
 
+        // Рендеринг корзины
+        function renderTrash() {
+            const tasks = board.trash;
+            trashList.innerHTML = '';
+
+            if (tasks.length === 0) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.className = 'trash-empty';
+                emptyMsg.textContent = 'Корзина пуста';
+                trashList.appendChild(emptyMsg);
+                return;
+            }
+
+            tasks.forEach((task, index) => {
+                const trashEl = document.createElement('div');
+                trashEl.className = 'trash-item';
+                const priority = task.priority || 'low';
+                trashEl.style.borderLeft = `4px solid ${priority === 'high' ? '#f44336' : priority === 'medium' ? '#ff9800' : '#4CAF50'}`;
+
+                trashEl.innerHTML = `
+                    <span class="trash-item-text" title="${task.text}">${task.text}</span>
+                    <div class="trash-item-actions">
+                        <button class="restore-btn" data-index="${index}">↩</button>
+                        <button class="permanent-delete-btn" data-index="${index}">✕</button>
+                    </div>
+                `;
+
+                trashList.appendChild(trashEl);
+            });
+        }
+
         // Добавление задачи
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
-                board.todo.push({ text, completed: false });
+                board.todo.push({ text, completed: false, priority: 'low' });
                 saveBoard();
                 renderBoard();
                 taskInput.value = '';
             }
         }
 
-        // Удаление задачи
+        // Удаление задачи - перемещение в корзину
         function deleteTask(columnId, index) {
-            board[columnId].splice(index, 1);
+            const [task] = board[columnId].splice(index, 1);
+            task.fromColumn = columnId;
+            task.deletedAt = Date.now();
+            board.trash.push(task);
             saveBoard();
             renderBoard();
+        }
+
+        // Восстановление задачи из корзины
+        function restoreTask(index) {
+            const task = board.trash[index];
+            const fromColumn = task.fromColumn || 'todo';
+            delete task.fromColumn;
+            delete task.deletedAt;
+            board.trash.splice(index, 1);
+            board[fromColumn].push(task);
+            saveBoard();
+            renderBoard();
+        }
+
+        // Окончательное удаление из корзины
+        function permanentDelete(index) {
+            board.trash.splice(index, 1);
+            saveBoard();
+            renderBoard();
+        }
+
+        // Очистка корзины
+        function emptyTrash() {
+            if (board.trash.length === 0) return;
+            if (confirm('Очистить корзину? Все задачи будут удалены безвозвратно.')) {
+                board.trash = [];
+                saveBoard();
+                renderBoard();
+            }
         }
 
         // Drag and drop handlers
         let draggedItem = null;
         let draggedColumn = null;
         let draggedIndex = null;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let isDragging = false;
 
         function handleDragStart(e) {
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            isDragging = false;
+
             draggedItem = this;
             draggedColumn = this.dataset.column;
             draggedIndex = parseInt(this.dataset.index);
             e.dataTransfer.setData('text/plain', '');
+            // Отложенное добавление класса чтобы не мешало клику
             setTimeout(() => {
-                this.classList.add('dragging');
-            }, 0);
+                if (draggedItem) {
+                    this.classList.add('dragging');
+                }
+            }, 50);
+        }
+
+        function handleMouseMove(e) {
+            // Определяем, начался ли drag (сдвиг мыши более 5px)
+            if (draggedItem && !isDragging) {
+                const dx = Math.abs(e.clientX - dragStartX);
+                const dy = Math.abs(e.clientY - dragStartY);
+                if (dx > 5 || dy > 5) {
+                    isDragging = true;
+                    draggedItem.classList.add('dragging');
+                }
+            }
+        }
+
+        function handleMouseUp(e) {
+            // Если не было перетаскивания (клик), сбрасываем состояние
+            if (draggedItem && !isDragging) {
+                draggedItem.classList.remove('dragging');
+            }
+            draggedItem = null;
+            draggedColumn = null;
+            draggedIndex = null;
+            isDragging = false;
         }
 
         function handleDragEnd(e) {
@@ -257,6 +742,7 @@
             draggedItem = null;
             draggedColumn = null;
             draggedIndex = null;
+            isDragging = false;
         }
 
         function handleDragOver(e) {
@@ -285,6 +771,13 @@
             // Remove from source column
             const [movedTask] = board[draggedColumn].splice(draggedIndex, 1);
 
+            // Запоминаем предыдущую колонку при перетаскивании в "Готово"
+            if (targetColumn === 'done') {
+                movedTask.previousColumn = draggedColumn;
+            } else if (movedTask.previousColumn) {
+                delete movedTask.previousColumn;
+            }
+
             // Auto-set completed based on target column
             movedTask.completed = (targetColumn === 'done');
 
@@ -298,10 +791,38 @@
         // Button click handlers
         function handleButtonClick(e) {
             const target = e.target;
-            if (!target.classList.contains('delete-btn')) return;
-            const columnId = target.dataset.column;
-            const index = parseInt(target.dataset.index);
-            deleteTask(columnId, index);
+
+            if (target.classList.contains('restore-btn')) {
+                const index = parseInt(target.dataset.index);
+                restoreTask(index);
+            } else if (target.classList.contains('permanent-delete-btn')) {
+                const index = parseInt(target.dataset.index);
+                if (confirm('Удалить задачу безвозвратно?')) {
+                    permanentDelete(index);
+                }
+            } else if (target.classList.contains('delete-btn')) {
+                const columnId = target.dataset.column;
+                const index = parseInt(target.dataset.index);
+                deleteTask(columnId, index);
+            } else if (target.classList.contains('priority-btn')) {
+                const columnId = target.dataset.column;
+                const index = parseInt(target.dataset.index);
+                togglePriority(columnId, index);
+            } else if (target.classList.contains('edit-btn') || target.classList.contains('task-text')) {
+                const columnId = target.dataset.column;
+                const index = parseInt(target.dataset.index);
+                openEditModal(columnId, index);
+            }
+        }
+
+        // Переключение важности задачи
+        function togglePriority(columnId, index) {
+            const task = board[columnId][index];
+            if (task) {
+                task.priority = task.priority === 'low' ? 'medium' : task.priority === 'medium' ? 'high' : 'low';
+                saveBoard();
+                renderBoard();
+            }
         }
 
         // Initialization
@@ -313,6 +834,10 @@
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTask();
         });
+
+        // Track drag vs click
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
 
         // Attach drag-and-drop listeners to each column container
         [todoList, inProgressList, doneList].forEach(container => {
@@ -326,6 +851,10 @@
         todoList.addEventListener('click', handleButtonClick);
         inProgressList.addEventListener('click', handleButtonClick);
         doneList.addEventListener('click', handleButtonClick);
+        trashList.addEventListener('click', handleButtonClick);
+
+        // Empty trash button
+        emptyTrashBtn.addEventListener('click', emptyTrash);
     </script>
 </body>
 </html>
