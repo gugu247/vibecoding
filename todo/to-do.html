@@ -18,15 +18,30 @@
         .input-group {
             display: flex;
             gap: 10px;
-            max-width: 600px;
+            max-width: 700px;
             margin: 0 auto 30px auto;
+            flex-wrap: wrap;
         }
         #taskInput {
             flex: 1;
+            min-width: 200px;
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
+        }
+        #taskDeadline {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        #taskTags {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 150px;
         }
         #addBtn {
             padding: 12px 20px;
@@ -203,8 +218,14 @@
             gap: 10px;
             max-width: 250px;
         }
-        .trash-item-text {
+        .trash-item-content {
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .trash-item-text {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -294,6 +315,74 @@
             outline: none;
             border-color: #4CAF50;
         }
+        .modal-field input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .modal-field input[type="date"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        .priority-radio {
+            display: flex;
+            gap: 10px;
+        }
+        .tags-editor {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 40px;
+            align-items: center;
+        }
+        .tag-input {
+            border: none;
+            outline: none;
+            flex: 1;
+            min-width: 100px;
+            font-size: 14px;
+            padding: 4px;
+        }
+        .editable-tag {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            padding: 4px 8px 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .editable-tag .tag-remove {
+            cursor: pointer;
+            color: #1565c0;
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 1;
+        }
+        .editable-tag .tag-remove:hover {
+            color: #d32f2f;
+        }
+        .trash-item-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 2px;
+        }
+        .trash-item-tag {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
         .priority-radio {
             display: flex;
             gap: 10px;
@@ -367,12 +456,58 @@
         .edit-btn:hover {
             background-color: #e0a800;
         }
+        .task-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+        }
+        .task-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .task-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .tag {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .task-deadline {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .task-deadline.no-deadline {
+            color: #999;
+            font-style: italic;
+        }
+        .task-deadline.overdue {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        .task-deadline.today {
+            color: #f57c00;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <h1>Kanban Доска</h1>
     <div class="input-group">
         <input type="text" id="taskInput" placeholder="Введите задачу...">
+        <input type="date" id="taskDeadline">
+        <input type="text" id="taskTags" placeholder="Теги (через запятую)">
         <button id="addBtn">Добавить</button>
     </div>
     <div class="kanban-board">
@@ -415,6 +550,16 @@
                 </div>
             </div>
             <div class="modal-field">
+                <label for="editDeadline">Дедлайн</label>
+                <input type="date" id="editDeadline">
+            </div>
+            <div class="modal-field">
+                <label>Теги</label>
+                <div class="tags-editor" id="tagsEditor">
+                    <input type="text" class="tag-input" id="tagInput" placeholder="Введите тег и нажмите Enter">
+                </div>
+            </div>
+            <div class="modal-field">
                 <div class="modal-checkbox">
                     <input type="checkbox" id="editCompleted">
                     <label for="editCompleted">Задача выполнена</label>
@@ -437,6 +582,8 @@
         };
 
         const taskInput = document.getElementById('taskInput');
+        const taskDeadline = document.getElementById('taskDeadline');
+        const taskTagsInput = document.getElementById('taskTags');
         const addBtn = document.getElementById('addBtn');
         const todoList = document.getElementById('todo-list');
         const inProgressList = document.getElementById('in-progress-list');
@@ -447,23 +594,62 @@
         // Modal elements
         const editModal = document.getElementById('editModal');
         const editText = document.getElementById('editText');
+        const editDeadline = document.getElementById('editDeadline');
         const editCompleted = document.getElementById('editCompleted');
         const saveEditBtn = document.getElementById('saveEditBtn');
         const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const tagsEditor = document.getElementById('tagsEditor');
+        const tagInput = document.getElementById('tagInput');
         let editingColumn = null;
         let editingIndex = null;
+        let editingTags = [];
 
         // ==================== МОДАЛЬНОЕ ОКНО ====================
+        // Утилита: возвращает класс статуса дедлайна (overdue/today/'')
+        function getDeadlineStatus(deadline) {
+            if (!deadline) return '';
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const deadlineDate = new Date(deadline);
+            deadlineDate.setHours(0, 0, 0, 0);
+            if (deadlineDate < today) return 'overdue';
+            if (deadlineDate.getTime() === today.getTime()) return 'today';
+            return '';
+        }
+
+        // Утилита: форматирует дату для отображения
+        function formatDeadline(deadline) {
+            if (!deadline) return 'без срока';
+            const date = new Date(deadline);
+            return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        // Утилита: парсит строку тегов (через запятую или пробел)
+        function parseTagsString(str) {
+            if (!str) return [];
+            return str.split(/[,\s]+/)
+                .map(t => t.trim().toLowerCase())
+                .filter(t => t.length > 0);
+        }
+
+        // Утилита: рендерит HTML для тегов
+        function renderTagsHTML(tags) {
+            if (!tags || tags.length === 0) return '';
+            return '<div class="task-tags">' + tags.map(t => `<span class="tag">#${t}</span>`).join('') + '</div>';
+        }
+
         function openEditModal(columnId, index) {
             const task = board[columnId][index];
             if (!task) return;
 
             editingColumn = columnId;
             editingIndex = index;
+            editingTags = [...(task.tags || [])];
 
             // Заполняем поля модалки
             editText.value = task.text;
             editCompleted.checked = task.completed;
+            editDeadline.value = task.deadline || '';
 
             // Устанавливаем приоритет
             const priority = task.priority || 'low';
@@ -471,15 +657,32 @@
                 radio.checked = radio.value === priority;
             });
 
+            // Рендерим теги в редакторе
+            renderTagsEditor();
+
             // Показываем модалку
             editModal.classList.add('active');
             editText.focus();
+        }
+
+        // Рендерит теги в редакторе модалки
+        function renderTagsEditor() {
+            // Удаляем все теги (не удаляя инпут)
+            tagsEditor.querySelectorAll('.editable-tag').forEach(el => el.remove());
+
+            editingTags.forEach((tag, i) => {
+                const tagEl = document.createElement('div');
+                tagEl.className = 'editable-tag';
+                tagEl.innerHTML = `<span>#${tag}</span><span class="tag-remove" data-index="${i}">×</span>`;
+                tagsEditor.insertBefore(tagEl, tagInput);
+            });
         }
 
         function closeEditModal() {
             editModal.classList.remove('active');
             editingColumn = null;
             editingIndex = null;
+            editingTags = [];
         }
 
         function saveEdit() {
@@ -490,6 +693,21 @@
 
             const task = board[editingColumn][editingIndex];
             task.text = text;
+
+            // Дедлайн (может быть пустым)
+            const deadlineValue = editDeadline.value.trim();
+            if (deadlineValue) {
+                task.deadline = deadlineValue;
+            } else {
+                delete task.deadline;
+            }
+
+            // Теги
+            if (editingTags.length > 0) {
+                task.tags = [...editingTags];
+            } else {
+                delete task.tags;
+            }
 
             // Приоритет из радио-кнопок
             const checkedPriority = document.querySelector('input[name="editPriority"]:checked');
@@ -532,12 +750,40 @@
                 closeEditModal();
             }
             if (e.key === 'Enter' && editModal.classList.contains('active')) {
+                // Enter в поле тегов не сохраняет модалку
+                if (e.target === tagInput) return;
+                // Enter в полях ввода дат также не должен сохранять
+                if (e.target === editDeadline) return;
                 saveEdit();
             }
         });
 
         saveEditBtn.addEventListener('click', saveEdit);
         cancelEditBtn.addEventListener('click', closeEditModal);
+
+        // Теги в модалке — добавление по Enter
+        tagInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = tagInput.value.trim();
+                if (val && !editingTags.includes(val.toLowerCase())) {
+                    editingTags.push(val.toLowerCase());
+                    renderTagsEditor();
+                }
+                tagInput.value = '';
+                // Возвращаем фокус обратно в поле ввода тега
+                tagInput.focus();
+            }
+        });
+
+        // Теги в модалке — удаление по клику на ×
+        tagsEditor.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tag-remove')) {
+                const idx = parseInt(e.target.dataset.index);
+                editingTags.splice(idx, 1);
+                renderTagsEditor();
+            }
+        });
 
         // Загрузка данных из localStorage
         function loadBoard() {
@@ -589,8 +835,25 @@
                 taskEl.dataset.index = index;
 
                 const isImportant = priority === 'high';
+                const deadlineStatus = getDeadlineStatus(task.deadline);
+                const deadlineText = formatDeadline(task.deadline);
+                let deadlineClass = 'task-deadline';
+                if (!task.deadline) {
+                    deadlineClass += ' no-deadline';
+                } else if (deadlineStatus) {
+                    deadlineClass += ` ${deadlineStatus}`;
+                }
+
+                const tagsHTML = renderTagsHTML(task.tags);
+
                 taskEl.innerHTML = `
-                    <span class="task-text" data-column="${columnId}" data-index="${index}" title="Кликните для редактирования">${task.text}</span>
+                    <div class="task-content">
+                        <span class="task-text" data-column="${columnId}" data-index="${index}" title="Кликните для редактирования">${task.text}</span>
+                        <div class="task-meta">
+                            <span class="${deadlineClass}">📅 ${deadlineText}</span>
+                            ${tagsHTML}
+                        </div>
+                    </div>
                     <div class="task-actions">
                         <button class="edit-btn" data-column="${columnId}" data-index="${index}" title="Редактировать">✏️</button>
                         <button class="priority-btn ${isImportant ? 'active' : ''}" data-column="${columnId}" data-index="${index}" title="Важная задача">★</button>
@@ -625,8 +888,16 @@
                 const priority = task.priority || 'low';
                 trashEl.style.borderLeft = `4px solid ${priority === 'high' ? '#f44336' : priority === 'medium' ? '#ff9800' : '#4CAF50'}`;
 
+                const deadlineText = formatDeadline(task.deadline);
+                const trashTagsHTML = (task.tags && task.tags.length > 0)
+                    ? '<div class="trash-item-tags">' + task.tags.map(t => `<span class="trash-item-tag">#${t}</span>`).join('') + '</div>'
+                    : '';
                 trashEl.innerHTML = `
-                    <span class="trash-item-text" title="${task.text}">${task.text}</span>
+                    <div class="trash-item-content">
+                        <span class="trash-item-text" title="${task.text}">${task.text}</span>
+                        <span class="task-deadline ${!task.deadline ? 'no-deadline' : ''}">📅 ${deadlineText}</span>
+                        ${trashTagsHTML}
+                    </div>
                     <div class="trash-item-actions">
                         <button class="restore-btn" data-index="${index}">↩</button>
                         <button class="permanent-delete-btn" data-index="${index}">✕</button>
@@ -641,10 +912,21 @@
         function addTask() {
             const text = taskInput.value.trim();
             if (text) {
-                board.todo.push({ text, completed: false, priority: 'low' });
+                const deadline = taskDeadline.value.trim();
+                const tags = parseTagsString(taskTagsInput.value);
+                const newTask = { text, completed: false, priority: 'low' };
+                if (deadline) {
+                    newTask.deadline = deadline;
+                }
+                if (tags.length > 0) {
+                    newTask.tags = tags;
+                }
+                board.todo.push(newTask);
                 saveBoard();
                 renderBoard();
                 taskInput.value = '';
+                taskDeadline.value = '';
+                taskTagsInput.value = '';
             }
         }
 
@@ -766,10 +1048,30 @@
             const targetColumn = this.dataset.column;
 
             if (!draggedColumn || !targetColumn) return;
-            if (draggedColumn === targetColumn) return;
 
-            // Remove from source column
+            // Определяем целевой индекс — куда вставить задачу
+            const targetTask = e.target.closest('.task-item');
+            let insertIndex;
+
+            if (targetTask) {
+                // Вставляем перед той задачей, на которую навели
+                insertIndex = parseInt(targetTask.dataset.index);
+                // Если это сама перетаскиваемая задача — пропускаем
+                if (targetTask === draggedItem) {
+                    return;
+                }
+            } else {
+                // Вставляем в конец колонки (пустая зона)
+                insertIndex = board[targetColumn].length;
+            }
+
+            // Удаляем задачу из исходной колонки
             const [movedTask] = board[draggedColumn].splice(draggedIndex, 1);
+
+            // Корректируем insertIndex, если удаление было выше в той же колонке
+            if (draggedColumn === targetColumn && draggedIndex < insertIndex) {
+                insertIndex--;
+            }
 
             // Запоминаем предыдущую колонку при перетаскивании в "Готово"
             if (targetColumn === 'done') {
@@ -781,8 +1083,8 @@
             // Auto-set completed based on target column
             movedTask.completed = (targetColumn === 'done');
 
-            // Add to target column (at the end)
-            board[targetColumn].push(movedTask);
+            // Вставляем на нужную позицию
+            board[targetColumn].splice(insertIndex, 0, movedTask);
 
             saveBoard();
             renderBoard();
