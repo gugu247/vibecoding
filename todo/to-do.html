@@ -5,15 +5,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>To-Do Kanban</title>
     <style>
+        :root {
+            --bg-body: #f5f5f5;
+            --bg-card: white;
+            --bg-input: white;
+            --bg-button-primary: #4CAF50;
+            --bg-button-primary-hover: #45a049;
+            --bg-button-danger: #f44336;
+            --bg-button-danger-hover: #d32f2f;
+            --bg-button-secondary: #6c757d;
+            --bg-button-secondary-hover: #5a6268;
+            --bg-button-warning: #ffc107;
+            --bg-button-warning-hover: #e0a800;
+            --bg-button-info: #2196F3;
+            --bg-button-info-hover: #1976D2;
+            --bg-button-success: #28a745;
+            --bg-button-success-hover: #218838;
+            --bg-button-restore: #28a745;
+            --bg-button-restore-hover: #218838;
+            --bg-trash-empty: #fafafa;
+            --bg-kanban-board-shadow: rgba(0,0,0,0.1);
+            --bg-tag: #e3f2fd;
+            --text-color: #333;
+            --text-secondary: #444;
+            --text-muted: #666;
+            --text-disabled: #888;
+            --text-tag: #1565c0;
+            --text-placeholder: #999;
+            --border-color: #ddd;
+            --border-light: #e9ecef;
+            --border-dashed: #ddd;
+            --border-priority-low: #4CAF50;
+            --border-priority-medium: #ff9800;
+            --border-priority-high: #f44336;
+            --bg-task-low: #e8f5e9;
+            --bg-task-medium: #fff8e1;
+            --bg-task-high: #ffebee;
+            --bg-task-completed: #f0f0f0;
+            --bg-modal-overlay: rgba(0, 0, 0, 0.5);
+            --bg-drag-over: #f0f8ff;
+            --theme-toggle-bg: #6c757d;
+            --theme-toggle-color: white;
+        }
+        body.dark-theme {
+            --bg-body: #1a1a1a;
+            --bg-card: #2d2d2d;
+            --bg-input: #3a3a3a;
+            --bg-button-primary: #66BB6A;
+            --bg-button-primary-hover: #57a05a;
+            --bg-button-danger: #ef5350;
+            --bg-button-danger-hover: #d32f2f;
+            --bg-button-secondary: #757575;
+            --bg-button-secondary-hover: #616161;
+            --bg-button-warning: #ffb300;
+            --bg-button-warning-hover: #ff8f00;
+            --bg-button-info: #42a5f5;
+            --bg-button-info-hover: #1976D2;
+            --bg-button-success: #66bb6a;
+            --bg-button-success-hover: #4caf50;
+            --bg-button-restore: #66bb6a;
+            --bg-button-restore-hover: #4caf50;
+            --bg-trash-empty: #252525;
+            --bg-tag: #1e3a5f;
+            --text-color: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-muted: #909090;
+            --text-disabled: #6a6a6a;
+            --text-tag: #64b5f6;
+            --text-placeholder: #707070;
+            --border-color: #444;
+            --border-light: #3a3a3a;
+            --border-dashed: #444;
+            --bg-task-low: #1e3a1e;
+            --bg-task-medium: #3a2e1e;
+            --bg-task-high: #3a1e1e;
+            --bg-task-completed: #2a2a2a;
+            --bg-modal-overlay: rgba(0, 0, 0, 0.7);
+            --bg-drag-over: #2a3a4a;
+            --theme-toggle-bg: #3a3a3a;
+            --theme-toggle-color: #e0e0e0;
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f5f5f5;
+            background-color: var(--bg-body);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
         }
         h1 {
             text-align: center;
-            color: #333;
+            color: var(--text-color);
         }
         .input-group {
             display: flex;
@@ -402,6 +484,27 @@
         .priority-radio input[type="radio"] {
             margin: 0;
         }
+        .tag-colors {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+        .tag-color-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        .tag-color-btn:hover {
+            transform: scale(1.2);
+        }
+        .tag-color-btn.selected {
+            border-color: var(--text-color);
+            transform: scale(1.15);
+        }
         .modal-checkbox {
             display: flex;
             align-items: center;
@@ -500,10 +603,184 @@
             color: #f57c00;
             font-weight: bold;
         }
+
+        /* ---- Inputs ---- */
+        #taskInput, #taskDeadline, #taskTags {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+        #taskInput::placeholder, #taskTags::placeholder {
+            color: var(--text-placeholder);
+        }
+        #addBtn {
+            background-color: var(--bg-button-primary);
+        }
+        #addBtn:hover {
+            background-color: var(--bg-button-primary-hover);
+        }
+
+        /* ---- Board ---- */
+        .column {
+            background-color: var(--bg-card);
+            box-shadow: 0 2px 4px var(--bg-kanban-board-shadow);
+        }
+        .column h2 {
+            color: var(--text-secondary);
+            border-bottom-color: var(--border-light);
+        }
+        .column.empty {
+            background-color: var(--bg-trash-empty);
+            border-color: var(--border-color);
+            color: var(--text-faint);
+        }
+        .task-list.drag-over {
+            border-color: var(--bg-button-primary);
+            background-color: var(--bg-drag-over);
+        }
+
+        /* ---- Task items ---- */
+        .task-item {
+            background-color: var(--bg-card);
+            border-color: var(--border-light);
+        }
+        .task-item.priority-low {
+            background-color: var(--bg-task-low);
+        }
+        .task-item.priority-medium {
+            background-color: var(--bg-task-medium);
+        }
+        .task-item.priority-high {
+            background-color: var(--bg-task-high);
+        }
+        .task-item.completed {
+            background-color: var(--bg-task-completed);
+        }
+        .task-item.completed .task-text {
+            color: var(--text-disabled);
+        }
+        .task-text {
+            color: var(--text-color);
+        }
+        .task-deadline {
+            color: var(--text-muted);
+        }
+        .task-deadline.no-deadline {
+            color: var(--text-faint);
+        }
+        .task-deadline.overdue {
+            color: var(--bg-button-danger);
+        }
+        .task-deadline.today {
+            color: var(--bg-button-warning);
+        }
+
+        /* ---- Buttons on cards ---- */
+        .delete-btn { background-color: var(--bg-button-danger); }
+        .delete-btn:hover { background-color: var(--bg-button-danger-hover); }
+        .priority-btn { color: var(--text-muted); }
+        .priority-btn:hover { color: var(--bg-button-warning); }
+        .priority-btn.active { color: var(--bg-button-danger); }
+        .edit-btn { background-color: var(--bg-button-warning); color: #212529; }
+        .edit-btn:hover { background-color: var(--bg-button-warning-hover); }
+
+        /* ---- Trash ---- */
+        .trash-section {
+            background-color: var(--bg-card);
+            box-shadow: 0 2px 4px var(--bg-kanban-board-shadow);
+        }
+        .trash-header {
+            border-bottom-color: var(--border-light);
+        }
+        .trash-header h2 {
+            color: var(--text-muted);
+        }
+        .empty-trash-btn { background-color: var(--bg-button-danger); }
+        .empty-trash-btn:hover { background-color: var(--bg-button-danger-hover); }
+        .trash-item {
+            background-color: var(--bg-card);
+            border-color: var(--border-light);
+        }
+        .trash-item-text { color: var(--text-color); }
+        .restore-btn { background-color: var(--bg-button-success); }
+        .restore-btn:hover { background-color: var(--bg-button-success-hover); }
+        .permanent-delete-btn { background-color: var(--bg-button-danger); }
+        .permanent-delete-btn:hover { background-color: var(--bg-button-danger-hover); }
+        .trash-empty { color: var(--text-faint); }
+
+        /* ---- Tags ---- */
+        .tag, .editable-tag, .trash-item-tag {
+            background-color: var(--bg-tag);
+            color: var(--text-tag);
+        }
+        .editable-tag .tag-remove { color: var(--text-tag); }
+
+        /* ---- Modal ---- */
+        .modal-overlay {
+            background-color: var(--bg-modal-overlay);
+        }
+        .modal {
+            background-color: var(--bg-card);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .modal h2 {
+            color: var(--text-color);
+        }
+        .modal-field label {
+            color: var(--text-muted);
+        }
+        .modal-field input[type="text"],
+        .modal-field input[type="date"] {
+            background-color: var(--input-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        .modal-field input[type="text"]:focus,
+        .modal-field input[type="date"]:focus {
+            border-color: var(--bg-button-primary);
+        }
+        .tags-editor {
+            background-color: var(--input-bg);
+            border-color: var(--border-color);
+        }
+        .tag-input {
+            background-color: transparent;
+            color: var(--text-color);
+        }
+        .priority-radio label {
+            border-color: var(--border-color);
+            color: var(--text-muted);
+        }
+        .priority-radio input[type="radio"] {
+            accent-color: var(--bg-button-primary);
+        }
+        .modal-checkbox input[type="checkbox"] {
+            accent-color: var(--bg-button-primary);
+        }
+        .modal-checkbox label {
+            color: var(--text-muted);
+        }
+        .modal-btn-cancel { background-color: var(--bg-button-secondary); }
+        .modal-btn-cancel:hover { background-color: var(--bg-button-secondary-hover); }
+        .modal-btn-save { background-color: var(--bg-button-primary); }
+        .modal-btn-save:hover { background-color: var(--bg-button-primary-hover); }
+
+        /* ---- Theme toggle ---- */
+        .theme-toggle {
+            background-color: var(--theme-toggle-bg);
+            color: var(--theme-toggle-color);
+            border: 1px solid var(--border-color);
+        }
+        .theme-toggle:hover {
+            background-color: var(--input-bg);
+        }
     </style>
 </head>
 <body>
     <h1>Kanban Доска</h1>
+    <div class="theme-toggle-wrapper">
+        <button id="themeToggle" class="theme-toggle" title="Переключить тему">🌙 Тёмная</button>
+    </div>
     <div class="input-group">
         <input type="text" id="taskInput" placeholder="Введите задачу...">
         <input type="date" id="taskDeadline">
@@ -558,6 +835,18 @@
                 <div class="tags-editor" id="tagsEditor">
                     <input type="text" class="tag-input" id="tagInput" placeholder="Введите тег и нажмите Enter">
                 </div>
+                <div class="tag-colors" id="tagColors">
+                    <button class="tag-color-btn" data-color="#e3f2fd" data-text="#1565c0" style="background-color: #e3f2fd" title="Голубой"></button>
+                    <button class="tag-color-btn" data-color="#f3e5f5" data-text="#6a1b9a" style="background-color: #f3e5f5" title="Фиолетовый"></button>
+                    <button class="tag-color-btn" data-color="#fce4ec" data-text="#c62828" style="background-color: #fce4ec" title="Розовый"></button>
+                    <button class="tag-color-btn" data-color="#fff3e0" data-text="#e65100" style="background-color: #fff3e0" title="Оранжевый"></button>
+                    <button class="tag-color-btn" data-color="#fff8e1" data-text="#f57f17" style="background-color: #fff8e1" title="Жёлтый"></button>
+                    <button class="tag-color-btn" data-color="#e8f5e9" data-text="#1b5e20" style="background-color: #e8f5e9" title="Зелёный"></button>
+                    <button class="tag-color-btn" data-color="#e0f7fa" data-text="#006064" style="background-color: #e0f7fa" title="Бирюзовый"></button>
+                    <button class="tag-color-btn" data-color="#e8eaf6" data-text="#283593" style="background-color: #e8eaf6" title="Индиго"></button>
+                    <button class="tag-color-btn" data-color="#efebe9" data-text="#3e2723" style="background-color: #efebe9" title="Коричневый"></button>
+                    <button class="tag-color-btn selected" data-color="#eceff1" data-text="#37474f" style="background-color: #eceff1" title="Серый"></button>
+                </div>
             </div>
             <div class="modal-field">
                 <div class="modal-checkbox">
@@ -600,9 +889,25 @@
         const cancelEditBtn = document.getElementById('cancelEditBtn');
         const tagsEditor = document.getElementById('tagsEditor');
         const tagInput = document.getElementById('tagInput');
+        const tagColors = document.getElementById('tagColors');
         let editingColumn = null;
         let editingIndex = null;
         let editingTags = [];
+        let selectedTagColor = { color: '#eceff1', textColor: '#37474f' };
+
+        // 10 цветов для тегов
+        const tagColorOptions = [
+            { color: '#e3f2fd', name: 'Голубой', textColor: '#1565c0' },
+            { color: '#f3e5f5', name: 'Фиолетовый', textColor: '#6a1b9a' },
+            { color: '#fce4ec', name: 'Розовый', textColor: '#c62828' },
+            { color: '#fff3e0', name: 'Оранжевый', textColor: '#e65100' },
+            { color: '#fff8e1', name: 'Жёлтый', textColor: '#f57f17' },
+            { color: '#e8f5e9', name: 'Зелёный', textColor: '#1b5e20' },
+            { color: '#e0f7fa', name: 'Бирюзовый', textColor: '#006064' },
+            { color: '#e8eaf6', name: 'Индиго', textColor: '#283593' },
+            { color: '#efebe9', name: 'Коричневый', textColor: '#3e2723' },
+            { color: '#eceff1', name: 'Серый', textColor: '#37474f' }
+        ];
 
         // ==================== МОДАЛЬНОЕ ОКНО ====================
         // Утилита: возвращает класс статуса дедлайна (overdue/today/'')
@@ -632,10 +937,15 @@
                 .filter(t => t.length > 0);
         }
 
-        // Утилита: рендерит HTML для тегов
+        // Утилита: рендерит HTML для тегов с учетом цвета
         function renderTagsHTML(tags) {
             if (!tags || tags.length === 0) return '';
-            return '<div class="task-tags">' + tags.map(t => `<span class="tag">#${t}</span>`).join('') + '</div>';
+            return '<div class="task-tags">' + tags.map(t => {
+                if (typeof t === 'string') {
+                    return `<span class="tag" style="background-color:#e3f2fd;color:#1565c0">#${t}</span>`;
+                }
+                return `<span class="tag" style="background-color:${t.color || '#e3f2fd'};color:${t.textColor || '#1565c0'}">#${t.name || t}</span>`;
+            }).join('') + '</div>';
         }
 
         function openEditModal(columnId, index) {
@@ -644,7 +954,12 @@
 
             editingColumn = columnId;
             editingIndex = index;
-            editingTags = [...(task.tags || [])];
+            editingTags = (task.tags || []).map(t => {
+                if (typeof t === 'string') {
+                    return { name: t, color: '#eceff1', textColor: '#37474f' };
+                }
+                return t;
+            });
 
             // Заполняем поля модалки
             editText.value = task.text;
@@ -673,7 +988,9 @@
             editingTags.forEach((tag, i) => {
                 const tagEl = document.createElement('div');
                 tagEl.className = 'editable-tag';
-                tagEl.innerHTML = `<span>#${tag}</span><span class="tag-remove" data-index="${i}">×</span>`;
+                tagEl.style.backgroundColor = tag.color;
+                tagEl.style.color = tag.textColor;
+                tagEl.innerHTML = `<span>#${tag.name}</span><span class="tag-remove" data-index="${i}">×</span>`;
                 tagsEditor.insertBefore(tagEl, tagInput);
             });
         }
@@ -766,8 +1083,8 @@
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const val = tagInput.value.trim();
-                if (val && !editingTags.includes(val.toLowerCase())) {
-                    editingTags.push(val.toLowerCase());
+                if (val && !editingTags.find(t => t.name.toLowerCase() === val.toLowerCase())) {
+                    editingTags.push({ name: val, ...selectedTagColor });
                     renderTagsEditor();
                 }
                 tagInput.value = '';
@@ -782,6 +1099,18 @@
                 const idx = parseInt(e.target.dataset.index);
                 editingTags.splice(idx, 1);
                 renderTagsEditor();
+            }
+        });
+
+        // Выбор цвета тега — клик по кнопке палитры
+        tagColors.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tag-color-btn')) {
+                tagColors.querySelectorAll('.tag-color-btn').forEach(btn => btn.classList.remove('selected'));
+                e.target.classList.add('selected');
+                selectedTagColor = {
+                    color: e.target.dataset.color,
+                    textColor: e.target.dataset.textColor
+                };
             }
         });
 
@@ -913,13 +1242,18 @@
             const text = taskInput.value.trim();
             if (text) {
                 const deadline = taskDeadline.value.trim();
-                const tags = parseTagsString(taskTagsInput.value);
+                const tagStrings = parseTagsString(taskTagsInput.value);
                 const newTask = { text, completed: false, priority: 'low' };
                 if (deadline) {
                     newTask.deadline = deadline;
                 }
-                if (tags.length > 0) {
-                    newTask.tags = tags;
+                if (tagStrings.length > 0) {
+                    // Присваиваем каждому тегу цвет из палитры по кругу
+                    newTask.tags = tagStrings.map((t, i) => ({
+                        name: t,
+                        color: tagColorOptions[i % tagColorOptions.length].color,
+                        textColor: tagColorOptions[i % tagColorOptions.length].textColor
+                    }));
                 }
                 board.todo.push(newTask);
                 saveBoard();
@@ -1157,6 +1491,31 @@
 
         // Empty trash button
         emptyTrashBtn.addEventListener('click', emptyTrash);
+
+        // ==================== ТЕМА ====================
+        const themeToggle = document.getElementById('themeToggle');
+
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('dark-theme');
+                themeToggle.textContent = '☀️ Светлая';
+            } else {
+                document.body.classList.remove('dark-theme');
+                themeToggle.textContent = '🌙 Тёмная';
+            }
+        }
+
+        // Загрузка темы
+        const savedTheme = localStorage.getItem('kanbanTheme') || 'light';
+        applyTheme(savedTheme);
+
+        // Переключение темы
+        themeToggle.addEventListener('click', () => {
+            const isDark = document.body.classList.contains('dark-theme');
+            const newTheme = isDark ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem('kanbanTheme', newTheme);
+        });
     </script>
 </body>
 </html>
